@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GroupResume Companion</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <div class="header-left">
+        <h1>💬 GroupResume</h1>
+        <span id="status-badge" class="badge badge-disconnected">Desconectado</span>
+      </div>
+      <div class="header-right">
+        <button id="btn-usage" class="btn-icon" title="Uso da API">📊</button>
+        <button id="btn-history" class="btn-icon" title="Histórico">📚</button>
+        <button id="btn-settings" class="btn-icon" title="Configurações">⚙️</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <!-- QR Code Screen -->
+      <section id="screen-qr" class="screen active">
+        <div class="qr-container">
+          <h2>📱 Conectar WhatsApp</h2>
+          <p>Escaneie o QR code com o WhatsApp do chip do bot</p>
+          <div id="qr-image" class="qr-placeholder">
+            <div class="spinner"></div>
+            <p>Gerando QR code...</p>
+          </div>
+          <p class="hint">Abra WhatsApp → Menu (⋮) → Aparelhos conectados → Conectar</p>
+        </div>
+      </section>
+
+      <!-- Groups Screen -->
+      <section id="screen-groups" class="screen">
+        <div class="groups-header">
+          <h2>📱 Seus Grupos</h2>
+          <div id="groups-summary" class="groups-summary"></div>
+        </div>
+        <input id="group-search" type="text" placeholder="🔍 Buscar grupo..." class="search-input" />
+        <div id="groups-list" class="groups-list">
+          <div class="loading-placeholder">Carregando grupos...</div>
+        </div>
+        <div class="upload-divider">
+          <span>ou importar arquivo</span>
+        </div>
+        <button id="btn-upload" class="btn-upload">
+          <span class="upload-icon">📁</span>
+          <span class="upload-text">Enviar arquivo .txt exportado do WhatsApp</span>
+          <span class="upload-hint">Exportado via WhatsApp → Chat → Exportar conversa</span>
+        </button>
+        <input type="file" id="file-upload" accept=".txt" class="hidden" />
+      </section>
+
+      <!-- Upload Results Screen -->
+      <section id="screen-upload" class="screen">
+        <button id="btn-back-upload" class="btn-back">← Voltar</button>
+        <h2>📁 Arquivo Importado</h2>
+        <div id="upload-info" class="upload-info"></div>
+
+        <div class="option-section">
+          <label>📅 Selecionar dia</label>
+          <div id="upload-dates" class="upload-dates"></div>
+        </div>
+
+        <div class="option-section">
+          <label>📊 Nível de detalhe</label>
+          <div class="level-cards upload-levels">
+            <button class="level-card" data-level="1">⚡ Flash</button>
+            <button class="level-card" data-level="2">📝 Resumido</button>
+            <button class="level-card active" data-level="3">📋 Padrão</button>
+            <button class="level-card" data-level="4">📖 Completo</button>
+            <button class="level-card" data-level="5">📌 Tópicos</button>
+          </div>
+        </div>
+
+        <div class="option-section">
+          <label>🔒 Privacidade</label>
+          <div class="privacy-cards upload-privacy">
+            <button class="privacy-card" data-privacy="anonymous">🔒 Anônimo</button>
+            <button class="privacy-card active" data-privacy="with-names">👥 Com Nomes</button>
+            <button class="privacy-card" data-privacy="smart">🎯 Inteligente</button>
+          </div>
+        </div>
+
+        <div class="option-section">
+          <label>🤖 IA</label>
+          <div class="ai-cards upload-ai">
+            <button class="ai-card active" data-ai="groq">☁️ Groq<span class="ai-meta">Online · rápido</span></button>
+            <button class="ai-card" data-ai="ollama">🖥️ Ollama<span class="ai-meta" id="upload-ollama-eta">Local</span></button>
+          </div>
+        </div>
+
+        <div class="action-buttons">
+          <button id="btn-upload-summarize" class="btn-primary">✨ Gerar Resumo</button>
+        </div>
+      </section>
+
+      <!-- Messages Preview Screen -->
+      <section id="screen-messages" class="screen">
+        <button id="btn-back-to-groups" class="btn-back">← Voltar</button>
+        <h2 id="messages-group-name">Grupo</h2>
+
+        <div class="option-section">
+          <label>📅 Período</label>
+          <div class="date-buttons" id="msg-date-buttons">
+            <button class="date-btn active" data-period="today">Hoje</button>
+            <button class="date-btn" data-period="yesterday">Ontem</button>
+            <button class="date-btn" data-period="3days">3 dias</button>
+            <button class="date-btn" data-period="7days">7 dias</button>
+            <button class="date-btn" data-period="custom">Escolher</button>
+          </div>
+          <div id="msg-custom-date" class="custom-date hidden">
+            <input type="date" id="msg-date-from" />
+            <span>até</span>
+            <input type="date" id="msg-date-to" />
+            <button id="msg-date-apply" class="btn-sm">Aplicar</button>
+          </div>
+        </div>
+
+        <div id="messages-stats" class="messages-stats">
+          <span id="msg-count">💬 0 mensagens</span>
+          <span id="msg-participants">👥 0 participantes</span>
+        </div>
+
+        <div id="messages-list" class="messages-list">
+          <div class="loading-placeholder">Selecione um período para carregar mensagens...</div>
+        </div>
+
+        <div class="action-buttons">
+          <button id="btn-go-summarize" class="btn-primary" disabled>✨ Resumir esta conversa</button>
+        </div>
+      </section>
+
+      <!-- Summary Options Screen -->
+      <section id="screen-options" class="screen">
+        <button id="btn-back-groups" class="btn-back">← Voltar</button>
+        <h2 id="selected-group-name">Grupo</h2>
+        <p id="options-period-info" class="result-info"></p>
+
+        <div class="option-section">
+          <label>📊 Nível de detalhe</label>
+          <div class="level-cards">
+            <button class="level-card" data-level="1">⚡ Flash</button>
+            <button class="level-card" data-level="2">📝 Resumido</button>
+            <button class="level-card active" data-level="3">📋 Padrão</button>
+            <button class="level-card" data-level="4">📖 Completo</button>
+            <button class="level-card" data-level="5">📌 Tópicos</button>
+          </div>
+        </div>
+
+        <div class="option-section">
+          <label>🔒 Privacidade</label>
+          <div class="privacy-cards">
+            <button class="privacy-card" data-privacy="anonymous">🔒 Anônimo</button>
+            <button class="privacy-card active" data-privacy="smart">🎯 Inteligente</button>
+            <button class="privacy-card" data-privacy="with-names">👥 Com Nomes</button>
+          </div>
+        </div>
+
+        <div class="option-section">
+          <label>🤖 IA</label>
+          <div class="ai-cards">
+            <button class="ai-card active" data-ai="groq">☁️ Groq<span class="ai-meta">Online · rápido</span></button>
+            <button class="ai-card" data-ai="ollama">🖥️ Ollama<span class="ai-meta" id="options-ollama-eta">Local</span></button>
+          </div>
+          <p id="ai-status-text" class="hint"></p>
+        </div>
+
+        <div class="force-new-row">
+          <label class="checkbox-inline">
+            <input type="checkbox" id="chk-force-new">
+            <span>🔄 Forçar novo resumo (ignorar cache)</span>
+          </label>
+        </div>
+
+        <div class="action-buttons">
+          <button id="btn-summarize" class="btn-primary">✨ Gerar Resumo</button>
+        </div>
+      </section>
+
+      <!-- Summary Result Screen -->
+      <section id="screen-result" class="screen">
+        <button id="btn-back-options" class="btn-back">← Voltar</button>
+        <h2>📋 Resumo</h2>
+        <p id="result-info" class="result-info"></p>
+
+        <div id="summary-content" class="summary-content"></div>
+
+        <div id="result-stats" class="result-stats"></div>
+
+        <div class="action-buttons">
+          <button id="btn-copy" class="btn-primary">📋 Copiar para WhatsApp</button>
+          <button id="btn-send-whatsapp" class="btn-secondary">📱 Enviar direto no WhatsApp</button>
+          <button id="btn-new-summary" class="btn-secondary">🔄 Novo Resumo</button>
+        </div>
+      </section>
+
+      <!-- Send to WhatsApp Screen -->
+      <section id="screen-send" class="screen">
+        <button id="btn-back-result" class="btn-back">← Voltar</button>
+        <h2>📱 Enviar para</h2>
+        <input id="contact-search" type="text" placeholder="🔍 Buscar contato ou grupo..." class="search-input" />
+        <div class="send-tabs">
+          <button id="tab-recent" class="tab-btn active">🕐 Recentes</button>
+          <button id="tab-all" class="tab-btn">📋 Todos os contatos</button>
+        </div>
+        <div id="contacts-list" class="contacts-list"></div>
+      </section>
+
+      <!-- History Screen -->
+      <section id="screen-history" class="screen">
+        <button id="btn-back-history" class="btn-back">← Voltar</button>
+        <div class="history-header">
+          <h2>📚 Histórico de Resumos</h2>
+          <button id="btn-clear-history" class="btn-sm-action danger" style="font-size: 0.78rem;">🗑️ Limpar</button>
+        </div>
+        <input id="history-search" type="text" placeholder="🔍 Buscar nos resumos..." class="search-input" />
+        <div id="history-search-results" class="history-search-results hidden"></div>
+        <div id="history-list" class="history-list">
+          <div class="loading-placeholder">Carregando...</div>
+        </div>
+      </section>
+
+      <!-- History Detail Screen -->
+      <section id="screen-history-detail" class="screen">
+        <button id="btn-back-history-list" class="btn-back">← Histórico</button>
+        <h2 id="history-detail-title">Resumo</h2>
+        <p id="history-detail-info" class="result-info"></p>
+        <div id="history-detail-content" class="summary-content"></div>
+        <div id="history-detail-stats" class="result-stats"></div>
+        <div class="action-buttons">
+          <button id="btn-history-copy" class="btn-primary">📋 Copiar para WhatsApp</button>
+          <button id="btn-history-send" class="btn-secondary">📱 Enviar no WhatsApp</button>
+        </div>
+      </section>
+
+      <!-- Settings Screen -->
+      <section id="screen-settings" class="screen">
+        <button id="btn-back-settings" class="btn-back">← Voltar</button>
+        <h2>⚙️ Configurações</h2>
+
+        <!-- Auto-Summary Section -->
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <h3>⏰ Auto-Resumo Diário</h3>
+            <label class="toggle">
+              <input type="checkbox" id="cfg-auto-enabled" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div id="auto-summary-settings" class="settings-body">
+            <div class="setting-row">
+              <label>🕐 Horário</label>
+              <input type="time" id="cfg-auto-time" value="20:00" class="setting-input" />
+            </div>
+            <div class="setting-row">
+              <label>📊 Nível de resumo</label>
+              <div class="level-cards setting-levels" id="cfg-auto-level">
+                <button class="level-card" data-level="1">⚡</button>
+                <button class="level-card" data-level="2">📝</button>
+                <button class="level-card active" data-level="3">📋</button>
+                <button class="level-card" data-level="4">📖</button>
+                <button class="level-card" data-level="5">📌</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <label>🔒 Privacidade</label>
+              <div class="privacy-cards setting-privacy" id="cfg-auto-privacy">
+                <button class="privacy-card" data-privacy="anonymous">🔒</button>
+                <button class="privacy-card active" data-privacy="smart">🎯</button>
+                <button class="privacy-card" data-privacy="with-names">👥</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <label>📱 Enviar para</label>
+              <select id="cfg-auto-sendto" class="setting-select">
+                <option value="">Enviar no próprio grupo</option>
+              </select>
+            </div>
+            <div class="setting-row setting-row-full">
+              <label>👥 Grupos para resumir automaticamente</label>
+              <p class="setting-hint">Deixe vazio para resumir todos os grupos</p>
+              <div id="cfg-auto-groups" class="checkbox-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bot Section -->
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <h3>🤖 Bot (!resumo)</h3>
+            <label class="toggle">
+              <input type="checkbox" id="cfg-bot-enabled" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div id="bot-settings" class="settings-body">
+            <div class="setting-row">
+              <label>⏱️ Cooldown entre resumos</label>
+              <div class="setting-inline">
+                <input type="number" id="cfg-bot-cooldown" min="1" max="1440" value="60" class="setting-input setting-input-sm" />
+                <span class="setting-suffix">minutos</span>
+              </div>
+            </div>
+            <div class="setting-row">
+              <label>📊 Nível padrão</label>
+              <div class="level-cards setting-levels" id="cfg-bot-level">
+                <button class="level-card" data-level="1">⚡</button>
+                <button class="level-card" data-level="2">📝</button>
+                <button class="level-card active" data-level="3">📋</button>
+                <button class="level-card" data-level="4">📖</button>
+                <button class="level-card" data-level="5">📌</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <label>🔒 Privacidade padrão</label>
+              <div class="privacy-cards setting-privacy" id="cfg-bot-privacy">
+                <button class="privacy-card" data-privacy="anonymous">🔒</button>
+                <button class="privacy-card active" data-privacy="smart">🎯</button>
+                <button class="privacy-card" data-privacy="with-names">👥</button>
+              </div>
+            </div>
+            <div class="setting-row setting-row-full">
+              <label>👥 Grupos onde o bot responde</label>
+              <p class="setting-hint">Deixe vazio para responder em todos os grupos</p>
+              <div id="cfg-bot-groups" class="checkbox-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group Rules Section -->
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <h3>📋 Regras por Grupo</h3>
+          </div>
+          <div class="settings-body">
+            <p class="setting-hint">Instruções personalizadas para cada grupo. A IA seguirá estas regras ao gerar resumos.</p>
+            <div id="cfg-group-rules" class="group-rules-list">
+              <div class="loading-placeholder">Carregando grupos...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Section -->
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <h3>🧠 Inteligência Artificial</h3>
+          </div>
+          <div class="settings-body">
+            <div class="setting-row">
+              <label>🤖 Provider padrão</label>
+              <div class="ai-cards" id="cfg-ai-provider">
+                <button class="ai-card active" data-ai="groq">☁️ Groq</button>
+                <button class="ai-card" data-ai="ollama">🖥️ Ollama</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <label>📡 Status IA</label>
+              <div id="cfg-ai-status" class="ai-status-info">Verificando...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ollama Management Section -->
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <h3>🖥️ Ollama — Modelos Locais</h3>
+            <span id="ollama-status-badge" class="badge badge-disconnected">Offline</span>
+          </div>
+          <div class="settings-body">
+            <div id="ollama-models-list" class="ollama-models-list">
+              <div class="loading-placeholder">Verificando Ollama...</div>
+            </div>
+
+            <div class="setting-row setting-row-full" style="margin-top: 12px;">
+              <label>📥 Baixar novo modelo</label>
+              <div class="ollama-download-row">
+                <select id="ollama-model-select" class="setting-select">
+                  <option value="gemma3:4b">gemma3:4b — Google 4B (rápido, 3.4GB)</option>
+                  <option value="gemma3:1b">gemma3:1b — Google 1B (ultra-rápido, 1GB)</option>
+                  <option value="qwen3:4b">qwen3:4b — Qwen 4B (3GB)</option>
+                  <option value="qwen3:8b">qwen3:8b — Qwen 8B (qualidade, 5.2GB)</option>
+                  <option value="llama3.2:3b">llama3.2:3b — Llama 3B (2.0GB)</option>
+                  <option value="phi4-mini:3.8b">phi4-mini:3.8b — Microsoft 3.8B (2.5GB)</option>
+                  <option value="mistral:7b">mistral:7b — Mistral 7B (4.1GB)</option>
+                </select>
+                <button id="btn-ollama-pull" class="btn-primary btn-sm-action">📥 Baixar</button>
+              </div>
+              <div id="ollama-pull-progress" class="ollama-pull-progress hidden">
+                <div class="progress-bar">
+                  <div id="ollama-pull-fill" class="progress-fill"></div>
+                </div>
+                <span id="ollama-pull-status" class="setting-hint">Baixando...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-buttons">
+          <button id="btn-save-settings" class="btn-primary">💾 Salvar Configurações</button>
+          <button id="btn-run-auto-now" class="btn-secondary">▶️ Executar Auto-Resumo Agora</button>
+        </div>
+
+        <div id="settings-toast" class="settings-toast hidden"></div>
+      </section>
+
+      <!-- Usage Screen -->
+      <section id="screen-usage" class="screen">
+        <button id="btn-back-usage" class="btn-back">← Voltar</button>
+        <h2>📊 Uso da API</h2>
+
+        <div class="usage-overview" id="usage-overview">
+          <div class="loading-placeholder">Carregando dados de uso...</div>
+        </div>
+
+        <div class="usage-details" id="usage-details"></div>
+      </section>
+
+      <!-- Loading Overlay -->
+      <div id="loading" class="loading hidden">
+        <div class="loading-content">
+          <div class="spinner"></div>
+          <p id="loading-text">Processando...</p>
+          <div id="progress-details" class="progress-details hidden">
+            <div id="progress-phase" class="progress-phase"></div>
+            <div id="progress-bar" class="progress-bar">
+              <div id="progress-fill" class="progress-fill"></div>
+            </div>
+            <div class="progress-meta">
+              <span id="progress-timer">⏱️ 0s</span>
+              <span id="progress-step"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toast -->
+      <div id="toast" class="toast hidden"></div>
+    </main>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
